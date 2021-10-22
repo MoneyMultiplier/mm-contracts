@@ -3,19 +3,27 @@
 pragma solidity ^0.8.9;
 
 import "hardhat/console.sol";
+import "../interfaces/IAaveLendingPool.sol";
 
 contract AaveMoneyMultiplier {
-    constructor(address token) {
-        console.log("Deploying a Greeter with greeting:", _greeting);
-        greeting = _greeting;
+
+    address _tokenAddress;
+    address aaveLendingPoolAddress =;
+    IAaveLendingPool _aaveLendingPool = ILendingPool(aaveLendingPoolAddress);
+
+
+    constructor(address tokenAddress) {
+        _tokenAddress = tokenAddress;
+    setUserUseReserveAsCollateral; // TODO
     }
 
-    function deposit() public view returns (string memory) {
+    function deposit(uint256 amount) public view returns () {
+        _aaveLendingPool.deposit(_tokenAddress, amount, address(this), 0);
+
         return greeting;
     }
 
-    function withdraw(string memory _greeting) public {
-        console.log("Changing greeting from '%s' to '%s'", greeting, _greeting);
-        greeting = _greeting;
+    function withdraw(uint256 amount) public {
+        console.log("Withdraw");
     }
 }
