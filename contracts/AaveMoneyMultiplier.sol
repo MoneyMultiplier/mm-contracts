@@ -3,7 +3,7 @@
 pragma solidity ^0.8.9;
 
 import "hardhat/console.sol";
-import "../interfaces/IAaveLendingPool.sol";
+import "./interfaces/IAaveLendingPool.sol";
 
 contract AaveMoneyMultiplier {
 
@@ -18,6 +18,11 @@ contract AaveMoneyMultiplier {
         _aTokenAddress = _aaveLendingPool.getReserveData(tokenAddress).aTokenAddress;
         _aaveLendingPool = ILendingPool(_aaveLendingPoolAddress);
         _aaveLendingPool.setUserUseReserveAsCollateral(_aaveLendingPoolAddress, true);
+    }
+
+    function executeOperation(address _reserve, uint256 _amount, uint256 _fee, bytes memory _params) external {
+
+
     }
 
     function deposit(uint256 amount) public view returns () {
