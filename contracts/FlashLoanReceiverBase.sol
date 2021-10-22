@@ -1,23 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.9;
 
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IFlashLoanReceiver.sol";
 import "./interfaces/ILendingPoolAddressesProvider.sol";
 import "./libraries/EthAddressLib.sol";
 
-contract FlashLoanReceiverBase is IFlashLoanReceiver {
+abstract contract FlashLoanReceiverBase is IFlashLoanReceiver {
     using SafeERC20 for IERC20;
 
     ILendingPoolAddressesProvider public addressesProvider;
 
-    constructor(ILendingPoolAddressesProvider _provider) public {
-        addressesProvider = _provider;
+    constructor(address _provider) {
+        addressesProvider = ILendingPoolAddressesProvider(_provider);
     }
-
-    function () external payable {
-    }
+//
+//    function () external payable {
+//    }
 
     function transferFundsBackToPoolInternal(address _reserve, uint256 _amount) internal {
 
@@ -29,7 +28,7 @@ contract FlashLoanReceiverBase is IFlashLoanReceiver {
     function transferInternal(address payable _destination, address _reserve, uint256  _amount) internal {
         if(_reserve == EthAddressLib.ethAddress()) {
             //solium-disable-next-line
-            _destination.call.value(_amount)("");
+            _destination.call{value: _amount}("");
             return;
         }
 

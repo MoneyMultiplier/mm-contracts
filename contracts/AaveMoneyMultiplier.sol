@@ -2,13 +2,17 @@
 pragma solidity ^0.8.9;
 
 import "hardhat/console.sol";
-import "./interfaces/IAaveLendingPool.sol";
+import "./interfaces/ILendingPool.sol";
+import "./FlashLoanReceiverBase.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract AaveMoneyMultiplier is FlashLoanReceiverBase {
+    using SafeERC20 for IERC20;
+
     address _tokenAddress;
     address _aTokenAddress;
     address _aaveLendingPoolAddress;
-    IAaveLendingPool _aaveLendingPool;
+    ILendingPool _aaveLendingPool;
     uint256 interestRateMode = 2;
 
     constructor(address _addressProvider, address tokenAddress) FlashLoanReceiverBase(_addressProvider) public {
@@ -27,9 +31,6 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     {
         require(_amount <= getBalanceInternal(address(this), _reserve), "Invalid balance, was the flashLoan successful?");
 
-        // Flash Loan
-        lendingPool.flashLoan(address(this), _tokenAddress, flashLoanAmount, "");
-
         // Lend Asset
         _aaveLendingPool.deposit(_tokenAddress,
             IERC20(_tokenAddress).balanceOf(address(this)),
@@ -37,20 +38,23 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
             0);
 
         // Borrow Asset
-        _aaveLendingPool.borrow(flashLoanAmount, amount, interestRateMode, 0, address(this));
+        _aaveLendingPool.borrow(_tokenAddress, _amount, interestRateMode, 0, address(this));
 
-        uint totalDebt = _amount.add(_fee);
+        uint totalDebt = _amount + _fee;
         transferFundsBackToPoolInternal(_reserve, totalDebt);
     }
 
-    function deposit(uint256 amount, uint256 flashLoanAmount) public view returns () {
+    function deposit(uint256 amount, uint256 flashLoanAmount) public {
         // Transfer Asset into contract
         IERC20(_tokenAddress).safeTransferFrom(msg.sender, address(this), amount);
+
+        // Flash Loan
+        _aaveLendingPool.flashLoan(address(this), _tokenAddress, flashLoanAmount, "");
     }
 
     function withdraw(uint256 amount) public {
         _aaveLendingPool.withdraw(_tokenAddress, amount, address(this));
         _aaveLendingPool.repay(_tokenAddress, amount, interestRateMode, address(this));
-        (,,uint256 availableBorrowsETH,,,uint256 healthFactor) = _aaveLendingPool.getUserAccountData();
+        (,,uint256 availableBorrowsETH,,,uint256 healthFactor) = _aaveLendingPool.getUserAccountData(msg.sender);
     }
 }

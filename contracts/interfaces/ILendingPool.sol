@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-pragma solidity ^0.8.6;
+pragma solidity ^0.8.9;
 
 import {DataTypes} from '../libraries/DataTypes.sol';
 
-
 interface ILendingPool {
+    function flashLoan(address _receiver, address _reserve, uint256 _amount, bytes memory _params) external;
+
     function deposit(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
 
     function withdraw(address asset, uint256 amount, address to) external returns (uint256);
@@ -38,4 +39,6 @@ interface ILendingPool {
         uint256 ltv,
         uint256 healthFactor
     );
+
+    function setUserUseReserveAsCollateral(address _reserve, bool _useAsCollateral) external;
 }
