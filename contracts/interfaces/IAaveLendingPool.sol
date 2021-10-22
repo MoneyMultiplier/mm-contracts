@@ -11,4 +11,16 @@ interface ILendingPool {
     function withdraw(address asset, uint256 amount, address to) external returns (uint256);
 
     function getReserveData(address asset) external view returns (DataTypes.ReserveData memory);
+
+    function getUserAccountData(address user)
+    external
+    view
+    returns (
+        uint256 totalCollateralETH,
+        uint256 totalDebtETH,
+        uint256 availableBorrowsETH,
+        uint256 currentLiquidationThreshold,
+        uint256 ltv,
+        uint256 healthFactor
+    );
 }

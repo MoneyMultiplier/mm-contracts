@@ -21,10 +21,12 @@ contract AaveMoneyMultiplier {
     function deposit(uint256 amount) public view returns () {
         _aaveLendingPool.deposit(_tokenAddress, amount, address(this), 0);
         _aaveLendingPool.borrow(_tokenAddress, amount, interestRateMode, 0, address(this));
-        return greeting;
+        (,,uint256 availableBorrowsETH,,,uint256 healthFactor) = _aaveLendingPool.getUserAccountData();
     }
 
     function withdraw(uint256 amount) public {
         _aaveLendingPool.withdraw(_tokenAddress, amount, address(this));
+        _aaveLendingPool.repay(_tokenAddress, amount, interestRateMode, address(this));
+        (,,uint256 availableBorrowsETH,,,uint256 healthFactor) = _aaveLendingPool.getUserAccountData();
     }
 }
