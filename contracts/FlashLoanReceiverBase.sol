@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.9;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
@@ -33,8 +34,6 @@ contract FlashLoanReceiverBase is IFlashLoanReceiver {
         }
 
         IERC20(_reserve).safeTransfer(_destination, _amount);
-
-
     }
 
     function getBalanceInternal(address _target, address _reserve) internal view returns(uint256) {
@@ -44,6 +43,5 @@ contract FlashLoanReceiverBase is IFlashLoanReceiver {
         }
 
         return IERC20(_reserve).balanceOf(_target);
-
     }
 }
