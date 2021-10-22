@@ -8,22 +8,23 @@ import "../interfaces/IAaveLendingPool.sol";
 contract AaveMoneyMultiplier {
 
     address _tokenAddress;
-    address aaveLendingPoolAddress =;
-    IAaveLendingPool _aaveLendingPool = ILendingPool(aaveLendingPoolAddress);
-
+    address _aaveLendingPoolAddress;
+    IAaveLendingPool _aaveLendingPool;
+    uint256 interestRateMode = 2;
 
     constructor(address tokenAddress) {
         _tokenAddress = tokenAddress;
-    setUserUseReserveAsCollateral; // TODO
+        _aaveLendingPool = ILendingPool(_aaveLendingPoolAddress);
+        _aaveLendingPool.setUserUseReserveAsCollateral(_aaveLendingPoolAddress, true);
     }
 
     function deposit(uint256 amount) public view returns () {
         _aaveLendingPool.deposit(_tokenAddress, amount, address(this), 0);
-
+        _aaveLendingPool.borrow(_tokenAddress, amount, interestRateMode, 0, address(this));
         return greeting;
     }
 
     function withdraw(uint256 amount) public {
-        console.log("Withdraw");
+        _aaveLendingPool.withdraw(_tokenAddress, amount, address(this));
     }
 }
