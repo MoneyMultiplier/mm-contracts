@@ -63,13 +63,13 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         Operation operation = abi.decode(params, (Operation));
 
         if (operation == Operation.DEPOSIT) {
+            uint256 amount = IERC20(_tokenAddress).balanceOf(address(this));
+
             uint256 liquidityIndex = _aaveLendingPool
                 .getReserveData(_tokenAddress)
                 .liquidityIndex;
             sumAmount += amount / liquidityIndex; //TODO deal with floating numbers
             userAmount[msg.sender] += amount / liquidityIndex; //TODO deal with floating numbers
-
-            uint256 amount = IERC20(_tokenAddress).balanceOf(address(this));
 
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amount);
 
@@ -250,14 +250,14 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
         // Approve 0 first as a few ERC20 tokens are requiring this pattern.
         IERC20(_tokenAddress).approve(routerAddress, 0);
-        IERC20(_tokenAddress).approve(routerAddress, amountIn);
+        IERC20(_tokenAddress).approve(routerAddress, amount);
 
-        uint256[] memory amounts = router.swapExactTokensForTokens(
-            amount,
-            1,
-            [claimedAsset, _tokenAddress],
-            address(this),
-            block.timestamp + 100000
-        );
+        // uint256[] memory amounts = router.swapExactTokensForTokens(
+        //     amount,
+        //     1,
+        //     [claimedAsset, _tokenAddress],
+        //     address(this),
+        //     block.timestamp + 100000
+        // );
     }
 }
