@@ -27,19 +27,21 @@ describe("AaveMoneyMultiplier", function () {
     let block = await provider.getBlock(blockNumber);
 
     await uniswapV2Router02.swapExactETHForTokens(
-        1,
-        [
-          wMaticAddress,
-          daiAddress
-        ],
-        owner.address,
-        block.timestamp + 100000,
-       {value: ethers.utils.parseEther("1")},
+      1,
+      [
+        wMaticAddress,
+        daiAddress
+      ],
+      owner.address,
+      block.timestamp + 100000,
+      { value: ethers.utils.parseEther("1") },
     )
 
     dai = await ethers.getContractAt("IERC20", daiAddress);
     amount = await dai.balanceOf(owner.address);
 
-    aaveMoneyMultiplier.deposit(amount, flashLoanAmount);
+    let tx = await aaveMoneyMultiplier.deposit(amount, flashLoanAmount);
+
+    tx.wait();
   });
 });
