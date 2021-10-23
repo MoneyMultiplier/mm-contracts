@@ -2,8 +2,8 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("AaveMoneyMultiplier", function () {
-  it("Should return the new greeting once it's changed", async function () {
-    const addressProvider = "0x3ac4e9aa29940770aeC38fe853a4bbabb2dA9C19";
+  it("Testing a deposit", async function () {
+    const addressProvider = "0xd05e3E715d945B59290df0ae8eF85c1BdB684744";
     const uniswapRouter = "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff";
 
     const daiAddress = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
@@ -36,6 +36,9 @@ describe("AaveMoneyMultiplier", function () {
         block.timestamp + 100000,
        {value: ethers.utils.parseEther("1")},
     )
+
+    dai = await ethers.getContractAt("IERC20", daiAddress);
+    amount = await dai.balanceOf(owner.address);
 
     aaveMoneyMultiplier.deposit(amount, flashLoanAmount);
   });

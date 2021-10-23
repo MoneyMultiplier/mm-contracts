@@ -3,8 +3,10 @@ pragma solidity ^0.8.9;
 
 import "hardhat/console.sol";
 import "./interfaces/ILendingPool.sol";
+import "./interfaces/ILendingPoolAddressesProvider.sol";
 import "./FlashLoanReceiverBase.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     using SafeERC20 for IERC20;
@@ -25,9 +27,13 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
         _aaveLendingPoolAddress = _addressesProvider.getLendingPool();
         _aaveLendingPool = ILendingPool(_aaveLendingPoolAddress);
+        console.log('c2');
 
-        _aaveLendingPool.setUserUseReserveAsCollateral(_aaveLendingPoolAddress, true);
+//        _aaveLendingPool.setUserUseReserveAsCollateral(tokenAddress, true);
+//        console.log('c2.2');
+
         _aTokenAddress = _aaveLendingPool.getReserveData(tokenAddress).aTokenAddress;
+        console.log('c3');
     }
 
     function executeOperation(
@@ -64,5 +70,27 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         _aaveLendingPool.withdraw(_tokenAddress, amount, address(this));
         _aaveLendingPool.repay(_tokenAddress, amount, interestRateMode, address(this));
         (,,uint256 availableBorrowsETH,,,uint256 healthFactor) = _aaveLendingPool.getUserAccountData(msg.sender);
+    }
+
+    function claim( uint256 amountInPercentage,
+        uint256 amountOutMin,
+        address[] calldata path) public {
+        address routerAddress = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff;
+
+        IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
+
+        uint256 amountIn = IERC20(path[0]).balanceOf(address(this)) * amountInPercentage / 100000;
+
+        // Approve 0 first as a few ERC20 tokens are requiring this pattern.
+        IERC20(path[0]).approve(routerAddress, 0);
+        IERC20(path[0]).approve(routerAddress, amountIn);
+
+        uint[] memory amounts = router.swapExactTokensForTokens(
+        amountIn,
+        amountOutMin,
+        path,
+        address(this),
+        block.timestamp + 100000
+        );
     }
 }
