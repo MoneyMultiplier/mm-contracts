@@ -223,11 +223,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         // ) = _aaveLendingPool.getUserAccountData(msg.sender);
     }
 
-    function claim(
-        uint256 amountInPercentage,
-        uint256 amountOutMin,
-        address[] calldata path
-    ) public {
+    function claim() public {
         address incentivesControllerAddress = 0x357D51124f59836DeD84c8a1730D72B749d8BC23;
         IAaveIncentivesController distributor = IAaveIncentivesController(
             incentivesControllerAddress
@@ -250,17 +246,16 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         address routerAddress = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff;
         IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
 
-        uint256 amountIn = (IERC20(path[0]).balanceOf(address(this)) *
-            amountInPercentage) / 100000;
+        uint256 amount = IERC20(_tokenAddress).balanceOf(address(this));
 
         // Approve 0 first as a few ERC20 tokens are requiring this pattern.
-        IERC20(path[0]).approve(routerAddress, 0);
-        IERC20(path[0]).approve(routerAddress, amountIn);
+        IERC20(_tokenAddress).approve(routerAddress, 0);
+        IERC20(_tokenAddress).approve(routerAddress, amountIn);
 
         uint256[] memory amounts = router.swapExactTokensForTokens(
-            amountIn,
-            amountOutMin,
-            path,
+            amount,
+            1,
+            [claimedAsset, _tokenAddress],
             address(this),
             block.timestamp + 100000
         );
