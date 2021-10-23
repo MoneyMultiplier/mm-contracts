@@ -15,8 +15,8 @@ abstract contract FlashLoanReceiverBase is IFlashLoanReceiver {
     ILendingPoolAddressesProvider public immutable override ADDRESSES_PROVIDER;
     ILendingPool public immutable override LENDING_POOL;
 
-    constructor(ILendingPoolAddressesProvider provider) public {
-        ADDRESSES_PROVIDER = provider;
-        LENDING_POOL = ILendingPool(provider.getLendingPool());
+    constructor(address provider) {
+        ADDRESSES_PROVIDER = ILendingPoolAddressesProvider(provider);
+        LENDING_POOL = ILendingPool(ADDRESSES_PROVIDER.getLendingPool());
     }
 }

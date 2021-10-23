@@ -22,9 +22,8 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     uint256 sumAmount;
     mapping(address => uint256) userAmount;
 
-    constructor(address _addressProvider, address tokenAddress)
+    constructor(address _addressProvider, address tokenAddress) FlashLoanReceiverBase(_addressProvider)
         public
-        IFlashLoanReceiver(_addressProvider)
     {
         _tokenAddress = tokenAddress;
         _addressesProvider = ILendingPoolAddressesProvider(_addressProvider);
