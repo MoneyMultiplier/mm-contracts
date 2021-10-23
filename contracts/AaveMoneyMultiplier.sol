@@ -7,6 +7,7 @@ import "./interfaces/ILendingPoolAddressesProvider.sol";
 import "./interfaces/FlashLoanReceiverBase.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "./interfaces/IAaveIncentivesController.sol";
 
 contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     using SafeERC20 for IERC20;
@@ -137,12 +138,20 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         uint256 amountOutMin,
         address[] calldata path
     ) public {
-        address routerAddress = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff;
+        address incentivesControllerAddress = 0x357D51124f59836DeD84c8a1730D72B749d8BC23;
+        IAaveIncentivesController distributor = IAaveIncentivesController(incentivesControllerAddress);
 
+        address[] memory assets = new address[](1);
+        assets[0] = _aTokenAddress;
+
+        uint256 amountToClaim = distributor.getRewardsBalance(assets, address(this));
+        uint256 claimedReward = distributor.claimRewards(assets, amountToClaim, address(this));
+        address claimedAsset = distributor.REWARD_TOKEN();
+
+        address routerAddress = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff;
         IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
 
-        uint256 amountIn = (IERC20(path[0]).balanceOf(address(this)) *
-        amountInPercentage) / 100000;
+        uint256 amountIn = (IERC20(path[0]).balanceOf(address(this)) * amountInPercentage) / 100000;
 
         // Approve 0 first as a few ERC20 tokens are requiring this pattern.
         IERC20(path[0]).approve(routerAddress, 0);
