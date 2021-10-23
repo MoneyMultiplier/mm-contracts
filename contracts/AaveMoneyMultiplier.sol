@@ -262,6 +262,11 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
              block.timestamp + 100000
          );
 
-        // TODO deposit to Aave
+        _aaveLendingPool.deposit(
+            _tokenAddress,
+            IERC20(_tokenAddress).balanceOf(address(this)),
+            address(this),
+            0
+        );
     }
 }
