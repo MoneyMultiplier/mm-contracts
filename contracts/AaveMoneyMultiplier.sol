@@ -23,6 +23,11 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     uint256 sumAmount;
     mapping(address => uint256) userAmount;
 
+    enum Operation {
+        DEPOSIT,
+        WITHDRAW
+    }
+
     constructor(address _addressProvider, address tokenAddress)
         public
         FlashLoanReceiverBase(_addressProvider)
@@ -48,35 +53,33 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         address initiator,
         bytes calldata params
     ) external override returns (bool) {
-        (address someAddress, uint256 someInt) = abi.decode(
-            params,
-            (address, uint256)
-        );
+        Operation operation = abi.decode(params, (Operation));
 
-        // require(
-        //     _amount <= getBalanceInternal(address(this), _reserve),
-        //     "Invalid balance, was the flashLoan successful?"
-        // );
+        if (operation == Operation.DEPOSIT) {
+            // require(
+            //     _amount <= getBalanceInternal(address(this), _reserve),
+            //     "Invalid balance, was the flashLoan successful?"
+            // );
 
-        // Lend Asset
-        _aaveLendingPool.deposit(
-            assets[0],
-            IERC20(assets[0]).balanceOf(address(this)),
-            address(this),
-            0
-        );
+            // Lend Asset
+            _aaveLendingPool.deposit(
+                assets[0],
+                IERC20(assets[0]).balanceOf(address(this)),
+                address(this),
+                0
+            );
 
-        // Borrow Asset
-        _aaveLendingPool.borrow(
-            assets[0],
-            amounts[0],
-            0, // TODO: set interestRateMode
-            0,
-            address(this)
-        );
+            // Borrow Asset
+            _aaveLendingPool.borrow(assets[0], amounts[0], 2, 0, address(this));
+            uint256 totalDebt = amounts[0] + premiums[0];
 
-        uint256 totalDebt = amounts[0] + premiums[0];
-        // transferFundsBackToPoolInternal(_reserve, totalDebt);
+            // Approve the LendingPool contract allowance to *pull* the owed amount
+            uint256 amountOwing = amounts[0] + premiums[0];
+            IERC20(assets[0]).approve(address(_aaveLendingPool), amountOwing);
+
+            return true;
+            // transferFundsBackToPoolInternal(_reserve, totalDebt);
+        }
     }
 
     function deposit(uint256 amount, uint256 flashLoanAmount) public {
@@ -105,9 +108,8 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         modes[0] = flashLoanMode;
 
         address onBehalfOf = address(this);
-        address someAddress = address(0);
-        uint256 someInt = 0;
-        bytes memory params = abi.encode(someAddress, someInt);
+        Operation operation = Operation.DEPOSIT;
+        bytes memory params = abi.encode(operation);
         uint16 referralCode = 0;
 
         // Flash Loan
