@@ -60,7 +60,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         console.log('flashed');
         console.log('balance before', IERC20(_tokenAddress).balanceOf(address(this)));
 
-        Operation operation = abi.decode(params, (Operation));
+        (Operation operation, uint256 aTokenAmount) = abi.decode(params, (Operation, uint256));
 
         if (operation == Operation.DEPOSIT) {
             uint256 amount = IERC20(_tokenAddress).balanceOf(address(this));
@@ -141,7 +141,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
         address onBehalfOf = address(this);
         Operation operation = Operation.DEPOSIT;
-        bytes memory params = abi.encode(operation);
+        bytes memory params = abi.encode(operation, 0);
         uint16 referralCode = 0;
 
         console.log('gonna flash');
@@ -182,6 +182,11 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         amounts[0] = userAmount[msg.sender] * balance / sumAmount;
         console.log('flash loan amount', amounts[0]);
 
+        uint256 aBalance = IERC20(_aTokenAddress).balanceOf(address(this)) * amount / (userAmount[msg.sender] * liquidityIndex / 10 ** 27);
+        uint256 aTokenAmount = userAmount[msg.sender] * aBalance / sumAmount;
+
+        console.log('aTokenAmount', aTokenAmount);
+
         sumAmount -= (amount * 10 ** 27) / liquidityIndex;
         userAmount[msg.sender] -= (amount * 10 ** 27) / liquidityIndex;
 
@@ -190,7 +195,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
         address onBehalfOf = address(this);
         Operation operation = Operation.WITHDRAW;
-        bytes memory params = abi.encode(operation);
+        bytes memory params = abi.encode(operation, aTokenAmount);
         uint16 referralCode = 0;
 
         console.log('gonna flash');
