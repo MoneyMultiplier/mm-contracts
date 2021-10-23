@@ -19,7 +19,9 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     ILendingPool _aaveLendingPool;
     uint256 interestRateMode = 2;
     uint256 flashLoanMode = 0;
+    uint256 multiplier;
 
+    uint256 constant LTV_MASK = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000;
     uint256 sumAmount;
     mapping(address => uint256) userAmount;
 
@@ -40,6 +42,8 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
         //        _aaveLendingPool.setUserUseReserveAsCollateral(tokenAddress, true);
         //        console.log('c2.2');
+
+        multiplier = 10000000 / (10000 - (_aaveLendingPool.getConfiguration(tokenAddress).data & ~LTV_MASK));
 
         _aTokenAddress = _aaveLendingPool
             .getReserveData(tokenAddress)
@@ -82,7 +86,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         }
     }
 
-    function deposit(uint256 amount, uint256 flashLoanAmount) public {
+    function deposit(uint256 amount) public {
         // Transfer Asset into contract
         IERC20(_tokenAddress).safeTransferFrom(
             msg.sender,
@@ -102,7 +106,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         assets[0] = address(_tokenAddress);
 
         uint256[] memory amounts = new uint256[](2);
-        amounts[0] = flashLoanAmount;
+        amounts[0] = amount; // TODO: this
         // 0 = no debt, 1 = stable, 2 = variable
         uint256[] memory modes = new uint256[](2);
         modes[0] = flashLoanMode;
