@@ -18,4 +18,12 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
  */
 module.exports = {
   solidity: "0.8.9",
+  defaultNetwork: "hardhat",
+  networks: {
+    hardhat: {
+      forking: {
+        url: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_KEY}`, 
+      }
+    },
+  },
 };
