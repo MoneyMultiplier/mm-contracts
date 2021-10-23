@@ -25,6 +25,7 @@ module.exports = {
     ]
   },
   defaultNetwork: "hardhat",
+  mocha: { timeout: '1800000'},
   networks: {
     hardhat: {
       forking: {
