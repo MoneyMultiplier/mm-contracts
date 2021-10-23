@@ -93,14 +93,16 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amount);
 
+            // TODO repay balance
             _aaveLendingPool.repay(_tokenAddress, amount, 2, address(this));
             console.log('balance after repay', IERC20(_tokenAddress).balanceOf(address(this)));
 
             uint256 amountOwing = amounts[0] + premiums[0];
 
+            console.log('amount owing', amountOwing);
             _aaveLendingPool.withdraw(
                 _tokenAddress,
-                amountOwing,
+                amountOwing - IERC20(_tokenAddress).balanceOf(address(this)),
                 address(this)
             );
             console.log('balance after withdraw', IERC20(_tokenAddress).balanceOf(address(this)));
