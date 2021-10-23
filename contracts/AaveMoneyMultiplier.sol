@@ -4,11 +4,11 @@ pragma solidity ^0.8.9;
 import "hardhat/console.sol";
 import "./interfaces/ILendingPool.sol";
 import "./interfaces/ILendingPoolAddressesProvider.sol";
-import "./interfaces/IFlashLoanReceiver.sol";
+import "./interfaces/FlashLoanReceiverBase.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
-contract AaveMoneyMultiplier is IFlashLoanReceiver {
+contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     using SafeERC20 for IERC20;
 
     address _tokenAddress;
@@ -17,6 +17,7 @@ contract AaveMoneyMultiplier is IFlashLoanReceiver {
     address _aaveLendingPoolAddress;
     ILendingPool _aaveLendingPool;
     uint256 interestRateMode = 2;
+    uint256 flashLoanMode = 0;
 
     uint256 sumAmount;
     mapping(address => uint256) userAmount;
@@ -42,35 +43,36 @@ contract AaveMoneyMultiplier is IFlashLoanReceiver {
     }
 
     function executeOperation(
-        address _reserve,
-        uint256 _amount,
-        uint256 _fee,
-        bytes calldata _params
-    ) external override {
-        require(
-            _amount <= getBalanceInternal(address(this), _reserve),
-            "Invalid balance, was the flashLoan successful?"
-        );
+        address[] calldata assets,
+        uint256[] calldata amounts,
+        uint256[] calldata premiums,
+        address initiator,
+        bytes calldata params
+    ) external override returns (bool) {
+        // require(
+        //     _amount <= getBalanceInternal(address(this), _reserve),
+        //     "Invalid balance, was the flashLoan successful?"
+        // );
 
         // Lend Asset
         _aaveLendingPool.deposit(
-            _tokenAddress,
-            IERC20(_tokenAddress).balanceOf(address(this)),
+            assets[0],
+            IERC20(assets[0]).balanceOf(address(this)),
             address(this),
             0
         );
 
         // Borrow Asset
         _aaveLendingPool.borrow(
-            _tokenAddress,
-            _amount,
-            interestRateMode,
+            assets[0],
+            amounts[0],
+            0, // TODO: set interestRateMode
             0,
             address(this)
         );
 
-        uint256 totalDebt = _amount + _fee;
-        transferFundsBackToPoolInternal(_reserve, totalDebt);
+        uint256 totalDebt = amounts[0] + premiums[0];
+        // transferFundsBackToPoolInternal(_reserve, totalDebt);
     }
 
     function deposit(uint256 amount, uint256 flashLoanAmount) public {
@@ -81,12 +83,30 @@ contract AaveMoneyMultiplier is IFlashLoanReceiver {
             amount
         );
 
+        address receiverAddress = address(this);
+
+        address[] memory assets = new address[](2);
+        assets[0] = address(_tokenAddress);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = flashLoanAmount;
+        // 0 = no debt, 1 = stable, 2 = variable
+        uint256[] memory modes = new uint256[](2);
+        modes[0] = flashLoanMode;
+
+        address onBehalfOf = address(this);
+        bytes memory params = "";
+        uint16 referralCode = 0;
+
         // Flash Loan
         _aaveLendingPool.flashLoan(
-            address(this),
-            _tokenAddress,
-            flashLoanAmount,
-            ""
+            receiverAddress,
+            assets,
+            amounts,
+            modes,
+            onBehalfOf,
+            params,
+            referralCode
         );
     }
 
