@@ -14,6 +14,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
     address _tokenAddress;
     address _aTokenAddress;
+    address _debtTokenAddress;
     ILendingPoolAddressesProvider _addressesProvider;
     address _aaveLendingPoolAddress;
     ILendingPool _aaveLendingPool;
@@ -46,6 +47,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         multiplier = 10000000 / (10000 - (_aaveLendingPool.getConfiguration(tokenAddress).data & ~LTV_MASK));
 
         _aTokenAddress = _aaveLendingPool.getReserveData(tokenAddress).aTokenAddress;
+        _debtTokenAddress = _aaveLendingPool.getReserveData(tokenAddress).variableDebtTokenAddress;
     }
 
     function executeOperation(
@@ -170,7 +172,9 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
         uint256[] memory amounts = new uint256[](1);
 
-        uint256 balance = IERC20(_aTokenAddress).balanceOf(address(this));
+        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
+
+        uint256 balance = IERC20(_debtTokenAddress).balanceOf(address(this)) * amount / (userAmount[msg.sender] * liquidityIndex / 10 ** 27);
         console.log('balance', balance);
         console.log('user', userAmount[msg.sender]);
         console.log('total', sumAmount);
@@ -178,7 +182,6 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         amounts[0] = userAmount[msg.sender] * balance / sumAmount;
         console.log('flash loan amount', amounts[0]);
 
-        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
         sumAmount -= (amount * 10 ** 27) / liquidityIndex;
         userAmount[msg.sender] -= (amount * 10 ** 27) / liquidityIndex;
 
