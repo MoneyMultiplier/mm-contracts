@@ -23,22 +23,18 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     mapping(address => uint256) userAmount;
 
     constructor(address _addressProvider, address tokenAddress) FlashLoanReceiverBase(_addressProvider)
-        public
+    public
     {
         _tokenAddress = tokenAddress;
         _addressesProvider = ILendingPoolAddressesProvider(_addressProvider);
 
         _aaveLendingPoolAddress = _addressesProvider.getLendingPool();
         _aaveLendingPool = ILendingPool(_aaveLendingPoolAddress);
-        console.log("c2");
 
         //        _aaveLendingPool.setUserUseReserveAsCollateral(tokenAddress, true);
         //        console.log('c2.2');
 
-        _aTokenAddress = _aaveLendingPool
-            .getReserveData(tokenAddress)
-            .aTokenAddress;
-        console.log("c3");
+        _aTokenAddress = _aaveLendingPool.getReserveData(tokenAddress).aTokenAddress;
     }
 
     function executeOperation(
@@ -82,6 +78,10 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
             amount
         );
 
+        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
+        sumAmount += amount / liquidityIndex; //TODO deal with floating numbers
+        userAmount[msg.sender] += amount / liquidityIndex; //TODO deal with floating numbers
+
         address receiverAddress = address(this);
 
         address[] memory assets = new address[](2);
@@ -110,6 +110,11 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     }
 
     function withdraw(uint256 amount) public {
+        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
+
+        sumAmount -= amount / liquidityIndex; //TODO deal with floating numbers
+        userAmount[msg.sender] -= amount / liquidityIndex; //TODO deal with floating numbers
+
         _aaveLendingPool.withdraw(_tokenAddress, amount, address(this));
         _aaveLendingPool.repay(
             _tokenAddress,
@@ -118,12 +123,12 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
             address(this)
         );
         (
-            ,
-            ,
-            uint256 availableBorrowsETH,
-            ,
-            ,
-            uint256 healthFactor
+        ,
+        ,
+        uint256 availableBorrowsETH,
+        ,
+        ,
+        uint256 healthFactor
         ) = _aaveLendingPool.getUserAccountData(msg.sender);
     }
 
@@ -137,7 +142,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
 
         uint256 amountIn = (IERC20(path[0]).balanceOf(address(this)) *
-            amountInPercentage) / 100000;
+        amountInPercentage) / 100000;
 
         // Approve 0 first as a few ERC20 tokens are requiring this pattern.
         IERC20(path[0]).approve(routerAddress, 0);
