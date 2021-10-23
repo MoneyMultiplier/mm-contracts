@@ -57,30 +57,42 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         address initiator,
         bytes calldata params
     ) external override returns (bool) {
+        console.log('flashed');
+        console.log('balance before', IERC20(assets[0]).balanceOf(address(this)));
+
         Operation operation = abi.decode(params, (Operation));
 
         if (operation == Operation.DEPOSIT) {
+            console.log('tokenAddress', _tokenAddress);
+            console.log('assets0', assets[0]);
             // require(
             //     _amount <= getBalanceInternal(address(this), _reserve),
             //     "Invalid balance, was the flashLoan successful?"
             // );
 
+            uint256 amount = IERC20(assets[0]).balanceOf(address(this));
+
+            IERC20(assets[0]).approve(address(_aaveLendingPool), amount);
+
             // Lend Asset
             _aaveLendingPool.deposit(
-                assets[0],
-                IERC20(assets[0]).balanceOf(address(this)),
+                _tokenAddress,
+                amount,
                 address(this),
                 0
             );
+            console.log('balance after deposit', IERC20(assets[0]).balanceOf(address(this)));
+
+            uint256 amountOwing = amounts[0] + premiums[0];
 
             // Borrow Asset
-            _aaveLendingPool.borrow(assets[0], amounts[0], 2, 0, address(this));
-            uint256 totalDebt = amounts[0] + premiums[0];
+            _aaveLendingPool.borrow(assets[0], amountOwing, 2, 0, address(this));
+            console.log('balance after borrow', IERC20(assets[0]).balanceOf(address(this)));
 
             // Approve the LendingPool contract allowance to *pull* the owed amount
-            uint256 amountOwing = amounts[0] + premiums[0];
             IERC20(assets[0]).approve(address(_aaveLendingPool), amountOwing);
 
+            console.log('balance before return', IERC20(assets[0]).balanceOf(address(this)));
             return true;
             // transferFundsBackToPoolInternal(_reserve, totalDebt);
         }
@@ -102,13 +114,15 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
         address receiverAddress = address(this);
 
-        address[] memory assets = new address[](2);
+        address[] memory assets = new address[](1);
         assets[0] = address(_tokenAddress);
 
-        uint256[] memory amounts = new uint256[](2);
-        amounts[0] = amount; // TODO: this
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = ((multiplier - 1025) * amount) / 1000;
+        console.log('flash loan amount', amounts[0]);
+
         // 0 = no debt, 1 = stable, 2 = variable
-        uint256[] memory modes = new uint256[](2);
+        uint256[] memory modes = new uint256[](1);
         modes[0] = flashLoanMode;
 
         address onBehalfOf = address(this);
@@ -116,6 +130,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         bytes memory params = abi.encode(operation);
         uint16 referralCode = 0;
 
+        console.log('gonna flash');
         // Flash Loan
         _aaveLendingPool.flashLoan(
             receiverAddress,

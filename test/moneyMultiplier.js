@@ -18,7 +18,6 @@ describe("AaveMoneyMultiplier", function () {
     let uniswapV2Router02 = await ethers.getContractAt("IUniswapV2Router02", uniswapRouter);
 
     let amount = 100000;
-    let flashLoanAmount = 200000;
 
     let dai = await ethers.getContractAt("IERC20", daiAddress);
 
@@ -38,9 +37,13 @@ describe("AaveMoneyMultiplier", function () {
     )
 
     dai = await ethers.getContractAt("IERC20", daiAddress);
-    amount = await dai.balanceOf(owner.address);
+    await dai.approve(aaveMoneyMultiplier.address, amount);
 
-    let tx = await aaveMoneyMultiplier.deposit(amount, flashLoanAmount);
+
+    console.log('dai', dai)
+    console.log('amount', amount)
+    let tx = await aaveMoneyMultiplier.deposit(amount);
+    console.log('tx', tx)
 
     tx.wait();
   });
