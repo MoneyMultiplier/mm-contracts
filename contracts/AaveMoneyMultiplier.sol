@@ -11,6 +11,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
     address _tokenAddress;
     address _aTokenAddress;
+    ILendingPoolAddressesProvider _addressesProvider;
     address _aaveLendingPoolAddress;
     ILendingPool _aaveLendingPool;
     uint256 interestRateMode = 2;
@@ -18,6 +19,8 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     constructor(address _addressProvider, address tokenAddress) FlashLoanReceiverBase(_addressProvider) public {
         _tokenAddress = tokenAddress;
         _aTokenAddress = _aaveLendingPool.getReserveData(tokenAddress).aTokenAddress;
+        _addressesProvider = ILendingPoolAddressesProvider(_addressProvider);
+        _aaveLendingPoolAddress = _addressesProvider.getLendingPool();
         _aaveLendingPool = ILendingPool(_aaveLendingPoolAddress);
         _aaveLendingPool.setUserUseReserveAsCollateral(_aaveLendingPoolAddress, true);
     }
