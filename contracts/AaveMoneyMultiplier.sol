@@ -68,7 +68,12 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
             uint256 liquidityIndex = _aaveLendingPool
                 .getReserveData(_tokenAddress)
                 .liquidityIndex;
-            sumAmount += amount / liquidityIndex; //TODO deal with floating numbers
+            // console.log('amount', amount);
+            // console.log('liquidityIndex', liquidityIndex);
+            // console.log('(amount * 10**27)', (amount * 10**27));
+            // console.log('((amount * 10**27) / liquidityIndex)', ((amount * 10**27) / liquidityIndex));
+            sumAmount += (amount * 10**27) / liquidityIndex; //TODO deal with floating numbers
+            // console.log('sumAmount', sumAmount);
             userAmount[msg.sender] += amount / liquidityIndex; //TODO deal with floating numbers
 
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amount);
@@ -99,11 +104,16 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
                 .getReserveData(_tokenAddress)
                 .liquidityIndex;
 
+            // console.log('liquidityIndex', liquidityIndex);
             uint256 amount = IERC20(_aTokenAddress).balanceOf(address(this));
+            // console.log('userAmount[msg.sender]', userAmount[msg.sender]);
+            // console.log('amount', amount);
+            // console.log('sumAmount', sumAmount);
 
             uint256 balance = userAmount[msg.sender] * amount / sumAmount;
+            // console.log('balance', balance);
 
-            sumAmount -= amount / liquidityIndex; //TODO deal with floating numbers
+            sumAmount -= (amount * 10**27) / liquidityIndex; //TODO deal with floating numbers
             userAmount[msg.sender] -= amount / liquidityIndex; //TODO deal with floating numbers
 
             IERC20(_aTokenAddress).approve(address(_aaveLendingPool), balance);
