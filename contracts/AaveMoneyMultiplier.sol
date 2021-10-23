@@ -23,8 +23,14 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     uint256 sumAmount;
     mapping(address => uint256) userAmount;
 
-    constructor(address _addressProvider, address tokenAddress) FlashLoanReceiverBase(_addressProvider)
-    public
+    enum Operation {
+        DEPOSIT,
+        WITHDRAW
+    }
+
+    constructor(address _addressProvider, address tokenAddress)
+        public
+        FlashLoanReceiverBase(_addressProvider)
     {
         _tokenAddress = tokenAddress;
         _addressesProvider = ILendingPoolAddressesProvider(_addressProvider);
@@ -35,7 +41,9 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         //        _aaveLendingPool.setUserUseReserveAsCollateral(tokenAddress, true);
         //        console.log('c2.2');
 
-        _aTokenAddress = _aaveLendingPool.getReserveData(tokenAddress).aTokenAddress;
+        _aTokenAddress = _aaveLendingPool
+            .getReserveData(tokenAddress)
+            .aTokenAddress;
     }
 
     function executeOperation(
@@ -45,30 +53,33 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         address initiator,
         bytes calldata params
     ) external override returns (bool) {
-        // require(
-        //     _amount <= getBalanceInternal(address(this), _reserve),
-        //     "Invalid balance, was the flashLoan successful?"
-        // );
+        Operation operation = abi.decode(params, (Operation));
 
-        // Lend Asset
-        _aaveLendingPool.deposit(
-            assets[0],
-            IERC20(assets[0]).balanceOf(address(this)),
-            address(this),
-            0
-        );
+        if (operation == Operation.DEPOSIT) {
+            // require(
+            //     _amount <= getBalanceInternal(address(this), _reserve),
+            //     "Invalid balance, was the flashLoan successful?"
+            // );
 
-        // Borrow Asset
-        _aaveLendingPool.borrow(
-            assets[0],
-            amounts[0],
-            0, // TODO: set interestRateMode
-            0,
-            address(this)
-        );
+            // Lend Asset
+            _aaveLendingPool.deposit(
+                assets[0],
+                IERC20(assets[0]).balanceOf(address(this)),
+                address(this),
+                0
+            );
 
-        uint256 totalDebt = amounts[0] + premiums[0];
-        // transferFundsBackToPoolInternal(_reserve, totalDebt);
+            // Borrow Asset
+            _aaveLendingPool.borrow(assets[0], amounts[0], 2, 0, address(this));
+            uint256 totalDebt = amounts[0] + premiums[0];
+
+            // Approve the LendingPool contract allowance to *pull* the owed amount
+            uint256 amountOwing = amounts[0] + premiums[0];
+            IERC20(assets[0]).approve(address(_aaveLendingPool), amountOwing);
+
+            return true;
+            // transferFundsBackToPoolInternal(_reserve, totalDebt);
+        }
     }
 
     function deposit(uint256 amount, uint256 flashLoanAmount) public {
@@ -79,7 +90,9 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
             amount
         );
 
-        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
+        uint256 liquidityIndex = _aaveLendingPool
+            .getReserveData(_tokenAddress)
+            .liquidityIndex;
         sumAmount += amount / liquidityIndex; //TODO deal with floating numbers
         userAmount[msg.sender] += amount / liquidityIndex; //TODO deal with floating numbers
 
@@ -95,7 +108,8 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         modes[0] = flashLoanMode;
 
         address onBehalfOf = address(this);
-        bytes memory params = "";
+        Operation operation = Operation.DEPOSIT;
+        bytes memory params = abi.encode(operation);
         uint16 referralCode = 0;
 
         // Flash Loan
@@ -111,7 +125,9 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     }
 
     function withdraw(uint256 amount) public {
-        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
+        uint256 liquidityIndex = _aaveLendingPool
+            .getReserveData(_tokenAddress)
+            .liquidityIndex;
 
         sumAmount -= amount / liquidityIndex; //TODO deal with floating numbers
         userAmount[msg.sender] -= amount / liquidityIndex; //TODO deal with floating numbers
@@ -124,12 +140,12 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
             address(this)
         );
         (
-        ,
-        ,
-        uint256 availableBorrowsETH,
-        ,
-        ,
-        uint256 healthFactor
+            ,
+            ,
+            uint256 availableBorrowsETH,
+            ,
+            ,
+            uint256 healthFactor
         ) = _aaveLendingPool.getUserAccountData(msg.sender);
     }
 
@@ -139,19 +155,29 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         address[] calldata path
     ) public {
         address incentivesControllerAddress = 0x357D51124f59836DeD84c8a1730D72B749d8BC23;
-        IAaveIncentivesController distributor = IAaveIncentivesController(incentivesControllerAddress);
+        IAaveIncentivesController distributor = IAaveIncentivesController(
+            incentivesControllerAddress
+        );
 
         address[] memory assets = new address[](1);
         assets[0] = _aTokenAddress;
 
-        uint256 amountToClaim = distributor.getRewardsBalance(assets, address(this));
-        uint256 claimedReward = distributor.claimRewards(assets, amountToClaim, address(this));
+        uint256 amountToClaim = distributor.getRewardsBalance(
+            assets,
+            address(this)
+        );
+        uint256 claimedReward = distributor.claimRewards(
+            assets,
+            amountToClaim,
+            address(this)
+        );
         address claimedAsset = distributor.REWARD_TOKEN();
 
         address routerAddress = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff;
         IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
 
-        uint256 amountIn = (IERC20(path[0]).balanceOf(address(this)) * amountInPercentage) / 100000;
+        uint256 amountIn = (IERC20(path[0]).balanceOf(address(this)) *
+            amountInPercentage) / 100000;
 
         // Approve 0 first as a few ERC20 tokens are requiring this pattern.
         IERC20(path[0]).approve(routerAddress, 0);
