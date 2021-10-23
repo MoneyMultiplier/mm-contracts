@@ -53,13 +53,11 @@ describe("AaveMoneyMultiplier", function () {
     await dai.approve(aaveMoneyMultiplier.address, amount);
 
 
-    console.log('dai', dai)
-    console.log('amount', amount)
-    let tx = await aaveMoneyMultiplier.deposit(amount);
-    console.log('tx', tx)
+    let tx1 = await aaveMoneyMultiplier.deposit(amount);
+    tx1.wait();
 
-    tx.wait();
-
+    let tx2 = await aaveMoneyMultiplier.withdraw(amount);
+    tx2.wait();
   });
 
 });
