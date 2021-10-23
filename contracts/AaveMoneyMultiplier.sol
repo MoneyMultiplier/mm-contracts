@@ -31,8 +31,8 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
     }
 
     constructor(address _addressProvider, address tokenAddress)
-        public
-        FlashLoanReceiverBase(_addressProvider)
+    public
+    FlashLoanReceiverBase(_addressProvider)
     {
         _tokenAddress = tokenAddress;
         _addressesProvider = ILendingPoolAddressesProvider(_addressProvider);
@@ -45,9 +45,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
         multiplier = 10000000 / (10000 - (_aaveLendingPool.getConfiguration(tokenAddress).data & ~LTV_MASK));
 
-        _aTokenAddress = _aaveLendingPool
-            .getReserveData(tokenAddress)
-            .aTokenAddress;
+        _aTokenAddress = _aaveLendingPool.getReserveData(tokenAddress).aTokenAddress;
     }
 
     function executeOperation(
@@ -64,17 +62,6 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
         if (operation == Operation.DEPOSIT) {
             uint256 amount = IERC20(_tokenAddress).balanceOf(address(this));
-
-            uint256 liquidityIndex = _aaveLendingPool
-                .getReserveData(_tokenAddress)
-                .liquidityIndex;
-            // console.log('amount', amount);
-            // console.log('liquidityIndex', liquidityIndex);
-            // console.log('(amount * 10**27)', (amount * 10**27));
-            // console.log('((amount * 10**27) / liquidityIndex)', ((amount * 10**27) / liquidityIndex));
-            sumAmount += (amount * 10**27) / liquidityIndex; //TODO deal with floating numbers
-            // console.log('sumAmount', sumAmount);
-            userAmount[msg.sender] += amount / liquidityIndex; //TODO deal with floating numbers
 
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amount);
 
@@ -97,38 +84,20 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amountOwing);
 
             console.log('balance before return', IERC20(_tokenAddress).balanceOf(address(this)));
-            return true;
-            // transferFundsBackToPoolInternal(_reserve, totalDebt);
+
         } else if (operation == Operation.WITHDRAW) {
-            uint256 liquidityIndex = _aaveLendingPool
-                .getReserveData(_tokenAddress)
-                .liquidityIndex;
+            console.log('withdraw');
+            uint256 amount = amounts[0];
 
-            // console.log('liquidityIndex', liquidityIndex);
-            uint256 amount = IERC20(_aTokenAddress).balanceOf(address(this));
-            // console.log('userAmount[msg.sender]', userAmount[msg.sender]);
-            // console.log('amount', amount);
-            // console.log('sumAmount', sumAmount);
+            console.log('amount withdraw', amount);
 
-            uint256 balance = userAmount[msg.sender] * amount / sumAmount;
-            // console.log('balance', balance);
+            IERC20(_tokenAddress).approve(address(_aaveLendingPool), amount);
 
-            sumAmount -= (amount * 10**27) / liquidityIndex; //TODO deal with floating numbers
-            userAmount[msg.sender] -= amount / liquidityIndex; //TODO deal with floating numbers
-
-            IERC20(_aTokenAddress).approve(address(_aaveLendingPool), balance);
-
-            _aaveLendingPool.repay(
-                _tokenAddress,
-                amount,
-                2,
-                address(this)
-            );
+            _aaveLendingPool.repay(_tokenAddress, amount, 2, address(this));
             console.log('balance after repay', IERC20(_tokenAddress).balanceOf(address(this)));
-            // _aaveLendingPool.withdraw(_tokenAddress, amount, address(this));
 
             uint256 amountOwing = amounts[0] + premiums[0];
-            
+
             _aaveLendingPool.withdraw(
                 _tokenAddress,
                 amountOwing,
@@ -138,9 +107,8 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
 
             // Approve the LendingPool contract allowance to *pull* the owed amount
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amountOwing);
-
-            return true;
         }
+        return true;
     }
 
     function deposit(uint256 amount) public {
@@ -156,7 +124,11 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         address[] memory assets = new address[](1);
         assets[0] = address(_tokenAddress);
 
-        uint256[] memory amounts = new uint256[](1);
+        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
+        sumAmount += (amount * 10 ** 27) / liquidityIndex;
+        userAmount[msg.sender] += (amount * 10 ** 27) / liquidityIndex;
+
+    uint256[] memory amounts = new uint256[](1);
         amounts[0] = ((multiplier - 1025) * amount) / 1000;
         console.log('flash loan amount', amounts[0]);
 
@@ -195,8 +167,18 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         assets[0] = address(_tokenAddress);
 
         uint256[] memory amounts = new uint256[](1);
-        amounts[0] = ((multiplier - 1025) * amount) / 1000;
+
+        uint256 balance = IERC20(_aTokenAddress).balanceOf(address(this));
+        console.log('balance', balance);
+        console.log('user', userAmount[msg.sender]);
+        console.log('total', sumAmount);
+
+        amounts[0] = userAmount[msg.sender] * balance / sumAmount;
         console.log('flash loan amount', amounts[0]);
+
+        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
+        sumAmount -= (amount * 10 ** 27) / liquidityIndex;
+        userAmount[msg.sender] -= (amount * 10 ** 27) / liquidityIndex;
 
         uint256[] memory modes = new uint256[](1);
         modes[0] = flashLoanMode;
@@ -218,9 +200,6 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
             params,
             referralCode
         );
-
-
-
 
 
         // (
