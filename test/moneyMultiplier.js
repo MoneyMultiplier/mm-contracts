@@ -30,7 +30,7 @@ describe("AaveMoneyMultiplier", function () {
   it("Testing a deposit then a withdraw", async function () {
     let [owner] = await ethers.getSigners();
 
-    let amount = 100000;
+    let amount = 10000000000000;
 
     let dai = await ethers.getContractAt("IERC20", daiAddress);
 
@@ -52,11 +52,8 @@ describe("AaveMoneyMultiplier", function () {
     dai = await ethers.getContractAt("IERC20", daiAddress);
     await dai.approve(aaveMoneyMultiplier.address, amount);
 
-
     let tx1 = await aaveMoneyMultiplier.deposit(amount);
     tx1.wait();
-
-    console.log('iojasiojoaijsi')
 
     let tx2 = await aaveMoneyMultiplier.withdraw(amount);
     tx2.wait();

@@ -102,9 +102,12 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
             uint256 amountOwing = amounts[0] + premiums[0];
 
             console.log('amount owing', amountOwing);
+            console.log('_aTokenAddress', IERC20(_aTokenAddress).balanceOf(address(this)));
+            console.log('aTokenAmount', aTokenAmount);
+
             _aaveLendingPool.withdraw(
                 _tokenAddress,
-                amountOwing - IERC20(_tokenAddress).balanceOf(address(this)),
+                aTokenAmount,
                 address(this)
             );
             console.log('balance after withdraw', IERC20(_tokenAddress).balanceOf(address(this)));
@@ -185,7 +188,8 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         uint256 aBalance = IERC20(_aTokenAddress).balanceOf(address(this)) * amount / (userAmount[msg.sender] * liquidityIndex / 10 ** 27);
         uint256 aTokenAmount = userAmount[msg.sender] * aBalance / sumAmount;
 
-        console.log('aTokenAmount', aTokenAmount);
+        console.log('aT2okenAmount', aTokenAmount);
+        console.log('_2aTokenAddress', IERC20(_aTokenAddress).balanceOf(address(this)));
 
         sumAmount -= (amount * 10 ** 27) / liquidityIndex;
         userAmount[msg.sender] -= (amount * 10 ** 27) / liquidityIndex;
@@ -211,15 +215,10 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
             referralCode
         );
 
+        console.log('ship', IERC20(_tokenAddress).balanceOf(address(this)));
+        console.log('ship2', IERC20(_aTokenAddress).balanceOf(address(this)));
 
-        // (
-        //     ,
-        //     ,
-        //     uint256 availableBorrowsETH,
-        //     ,
-        //     ,
-        //     uint256 healthFactor
-        // ) = _aaveLendingPool.getUserAccountData(msg.sender);
+        IERC20(_tokenAddress).safeTransfer(msg.sender, IERC20(_tokenAddress).balanceOf(address(this)));
     }
 
     function claim() public {
@@ -251,12 +250,18 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase {
         IERC20(_tokenAddress).approve(routerAddress, 0);
         IERC20(_tokenAddress).approve(routerAddress, amount);
 
-        // uint256[] memory amounts = router.swapExactTokensForTokens(
-        //     amount,
-        //     1,
-        //     [claimedAsset, _tokenAddress],
-        //     address(this),
-        //     block.timestamp + 100000
-        // );
+        address[] memory path = new address[](2);
+        path[0] = claimedAsset;
+        path[1] = _tokenAddress;
+
+        router.swapExactTokensForTokens(
+             amount,
+             1,
+             path,
+             address(this),
+             block.timestamp + 100000
+         );
+
+        // TODO deposit to Aave
     }
 }
