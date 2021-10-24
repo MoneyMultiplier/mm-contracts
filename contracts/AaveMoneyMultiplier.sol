@@ -242,4 +242,9 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
             0
         );
     }
+
+    function scaledBalanceOf(address user) external view returns (uint256) {
+        // TODO
+        return 0;
+    }
 }
