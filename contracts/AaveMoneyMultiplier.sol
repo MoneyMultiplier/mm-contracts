@@ -82,7 +82,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         assets[0] = address(_tokenAddress);
 
         uint256[] memory amounts = new uint256[](1);
-        amounts[0] = (multiplier * 995 * amount) / 1000;
+        amounts[0] = ((multiplier - 1000) * 990 * amount) / 1000000;
 
         uint256[] memory modes = new uint256[](1);
         modes[0] = flashLoanMode;
