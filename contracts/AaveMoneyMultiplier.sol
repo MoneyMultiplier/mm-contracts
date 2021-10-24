@@ -105,14 +105,17 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         );
     }
 
-    function withdraw(uint256 amount) public {
+    function withdraw(uint256 percentage) public {
         // TODO make withdraw work with percentages
         uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
 
-        require((amount * 10 ** 27) / liquidityIndex <= balanceOf(msg.sender), "NOT ENOUGH FUNDS");
+        require(percentage <= 10000 && percentage > 0, "WITHDRAW NEEDS TO BE > 0 AND <= 10000 (0% AND 100%)");
+        require(balanceOf(msg.sender) > 0, "NEEDS TO HAVE BALANCE > 0");
+
+        uint256 amount = balanceOf(msg.sender) * percentage / 10000;
 
         // Track balance in contract
-        _burn(msg.sender, (amount * 10 ** 27) / liquidityIndex);
+        _burn(msg.sender, amount);
 
         address receiverAddress = address(this);
 
@@ -120,11 +123,11 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         assets[0] = address(_tokenAddress);
 
         uint256[] memory amounts = new uint256[](1);
-        uint256 debtBalance = IERC20(_debtTokenAddress).balanceOf(address(this)) * amount / (balanceOf(msg.sender) * liquidityIndex / 10 ** 27);
-        amounts[0] = balanceOf(msg.sender) * debtBalance / totalSupply();
+        uint256 debtBalance = IERC20(_debtTokenAddress).balanceOf(address(this));
+        amounts[0] = amount * debtBalance / totalSupply();
 
-        uint256 assetBalance = IERC20(_aTokenAddress).balanceOf(address(this)) * amount / (balanceOf(msg.sender) * liquidityIndex / 10 ** 27);
-        uint256 aTokenAmount = balanceOf(msg.sender) * assetBalance / totalSupply();
+        uint256 assetBalance = IERC20(_aTokenAddress).balanceOf(address(this));
+        uint256 aTokenAmount = amount * assetBalance / totalSupply();
 
         uint256[] memory modes = new uint256[](1);
         modes[0] = flashLoanMode;
