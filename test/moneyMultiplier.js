@@ -7,6 +7,8 @@ describe("AaveMoneyMultiplier", function () {
 
   let daiAddress;
   let wMaticAddress;
+  let aaveControllerAddress;
+  let uniswapRouterAddress;
 
   let AaveMoneyMultiplier;
   let aaveMoneyMultiplier;
@@ -17,10 +19,12 @@ describe("AaveMoneyMultiplier", function () {
     uniswapRouter = "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff";
   
     daiAddress = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
-    wMaticAddress = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";  
+    wMaticAddress = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
+    aaveControllerAddress = "0x357D51124f59836DeD84c8a1730D72B749d8BC23";
+    uniswapRouterAddress = "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff";
 
     AaveMoneyMultiplier = await ethers.getContractFactory("AaveMoneyMultiplier");
-    aaveMoneyMultiplier = await AaveMoneyMultiplier.deploy(addressProvider, daiAddress);
+    aaveMoneyMultiplier = await AaveMoneyMultiplier.deploy(daiAddress, addressProvider, aaveControllerAddress, uniswapRouterAddress, "Test", "TEST");
     await aaveMoneyMultiplier.deployed();
 
     uniswapV2Router02 = await ethers.getContractAt("IUniswapV2Router02", uniswapRouter);
