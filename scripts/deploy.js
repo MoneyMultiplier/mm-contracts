@@ -5,12 +5,12 @@ const hre = require("hardhat");
 const { BigNumber } = hre.ethers;
 // const { ethers } = require("ethers");
 
-const deployLogic = async ({ networkName, contractName, assetName, assetSymbol, nonce, addresses }) => {
+const deployLogic = async ({ networkName, contractName, assetAddress, assetName, assetSymbol, nonce, addresses }) => {
   console.log(`Deploying ${contractName} for ${assetName}...`);
   let contractInterface = await hre.ethers.getContractFactory(contractName);
 
   const deployedContract = await contractInterface.deploy(
-    addresses['daiAddress'],
+    assetAddress,
     addresses['addressProvider'],
     addresses['aaveControllerAddress'],
     addresses['uniswapRouterAddress'],
@@ -45,18 +45,42 @@ const weiToString = (wei) => {
 const deployData = {
   polygon: {
     contracts: [
-      {
-        assetName: 'DAI',
-        assetSymbol: 'DAI',
-        contractName: "AaveMoneyMultiplier",
-      },
+        {
+            assetAddress: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+            assetName: 'Money Multiplier USD Coin',
+            assetSymbol: 'mmUSDC',
+            contractName: "AaveMoneyMultiplier",
+        },
+        {
+            assetAddress: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
+            assetName: 'Money Multiplier DAI',
+            assetSymbol: 'mmDAI',
+            contractName: "AaveMoneyMultiplier",
+        },
+        {
+            assetAddress: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+            assetName: 'Money Multiplier Wrapped Ether',
+            assetSymbol: 'mmWETH',
+            contractName: "AaveMoneyMultiplier",
+        },
+        {
+            assetAddress: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
+            assetName: 'Money Multiplier Wrapped Matic',
+            assetSymbol: 'mmWMATIC',
+            contractName: "AaveMoneyMultiplier",
+        },
+        {
+            assetAddress: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
+            assetName: 'Money Multiplier Wrapped Bitcoin',
+            assetSymbol: 'mmWBTC',
+            contractName: "AaveMoneyMultiplier",
+        },
     ],
     addresses: {
       lendingPoolAddressesProvider: '0xd05e3E715d945B59290df0ae8eF85c1BdB684744',
       uniswapRouterAddress: "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
       aaveControllerAddress: "0x357D51124f59836DeD84c8a1730D72B749d8BC23",
       addressProvider: "0xd05e3E715d945B59290df0ae8eF85c1BdB684744",
-      daiAddress: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",  
     }
   },
   avalanche: {
@@ -90,6 +114,7 @@ async function main() {
       const isOk = await deployLogic({
           networkName: networkName,
           contractName: deployData[networkName]['contracts'][i].contractName,
+          assetAddress: deployData[networkName]['contracts'][i].assetAddress,
           assetName: deployData[networkName]['contracts'][i].assetName,
           assetSymbol: deployData[networkName]['contracts'][i].assetSymbol,
           addresses: deployData[networkName]['addresses'],
