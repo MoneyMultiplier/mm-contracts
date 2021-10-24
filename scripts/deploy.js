@@ -1,7 +1,6 @@
 import deployLogic from "./utils/deployLogic";
 import {ethers} from "hardhat";
 import {BigNumber} from "ethers";
-import {MongoClient} from 'mongodb';
 
 const hre = require("hardhat");
 const prompts = require("prompts");
@@ -14,12 +13,23 @@ const weiToString = (wei) => {
         .toNumber() / Math.pow(10, 4);
 }
 
-const contractsToDeploy = [
-    {
+const deployData = {
+  polygon: {
+    contracts: [
+      {
+        assetName: 'DAI',
         contractName: "MoneyMultiplier",
-        filePath: "./artifacts/contracts/AaveMoneyMultiplier.sol/AaveMoneyMultiplier.json"
-    },
-]
+        filePath: "./artifacts/contracts/AaveMoneyMultiplier.sol/AaveMoneyMultiplier.json",
+      },
+    ],
+    lendingPoolAddressesProvider: '0xd05e3E715d945B59290df0ae8eF85c1BdB684744',
+  },
+  avalanche: {
+
+  }
+}
+
+const contractsToDeploy = 
 
 async function main() {
   const networkName = hre.hardhatArguments.network;
@@ -53,17 +63,18 @@ async function main() {
 
   var allOk = true;
 
-  for (var i = 0; i < contractsToDeploy.length; i++) {
-      let nonce = await deployer.getTransactionCount();
-      const isOk = await deployLogic({
-          networkName: networkName,
-          contractName: contractsToDeploy[i].contractName,
-          filePath: contractsToDeploy[i].filePath,
-          nonce: nonce
-      })
-      if (!isOk) {
-          allOk = false;
-      }
+  for (var i = 0; i < deployData[networkName][contracts].length; i++) {
+    console.log('assetName',deployData[networkName][contracts].assetName);
+      // let nonce = await deployer.getTransactionCount();
+      // const isOk = await deployLogic({
+      //     networkName: networkName,
+      //     contractName: contractsToDeploy[i].contractName,
+      //     filePath: contractsToDeploy[i].filePath,
+      //     nonce: nonce
+      // })
+      // if (!isOk) {
+      //     allOk = false;
+      // }
   }
   const balanceEnd = await deployer.getBalance();
   console.log("Account balance:", weiToString(balanceEnd));
