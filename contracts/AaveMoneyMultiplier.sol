@@ -79,8 +79,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         );
 
         // Track balance in contract
-        uint256 liquidityIndex = _aaveLendingPool
-            .getReserveData(_tokenAddress)
+        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
         _mint(msg.sender, (amount * 10**27) / liquidityIndex);
 
         // FlashLoan params
