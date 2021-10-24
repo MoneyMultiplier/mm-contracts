@@ -59,7 +59,7 @@ describe("AaveMoneyMultiplier", function () {
     let tx1 = await aaveMoneyMultiplier.deposit(amount);
     tx1.wait();
 
-    let tx2 = await aaveMoneyMultiplier.withdraw(amount);
+    let tx2 = await aaveMoneyMultiplier.withdraw(10000);
     tx2.wait();
   });
 
