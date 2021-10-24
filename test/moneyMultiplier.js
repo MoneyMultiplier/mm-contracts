@@ -1,5 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const hre = require("hardhat");
+const { BigNumber } = hre.ethers;
 
 describe("AaveMoneyMultiplier", function () {
                                                                                                                                                                   let addressProvider;
@@ -34,7 +36,7 @@ describe("AaveMoneyMultiplier", function () {
   it("Testing a deposit then a withdraw", async function () {
     let [owner] = await ethers.getSigners();
 
-    let amount = 10000000000000;
+    let amount = BigNumber.from("1000000000000000000");
 
     let dai = await ethers.getContractAt("IERC20", daiAddress);
 

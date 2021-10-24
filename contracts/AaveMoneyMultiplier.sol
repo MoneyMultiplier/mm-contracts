@@ -31,22 +31,21 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
     address immutable _routerAddress;
 
     // Helpers
-    uint256 constant LTV_MASK = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000;
+    uint256 constant LTV_MASK =
+        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000;
     enum Operation {
         DEPOSIT,
         WITHDRAW
     }
 
-    constructor(address tokenAddress,
-                address _addressProvider,
-                address incentivesControllerAddress,
-                address routerAddress,
-                string memory name,
-                string memory symbol)
-    public
-        FlashLoanReceiverBase(_addressProvider)
-        ERC20(name, symbol)
-    {
+    constructor(
+        address tokenAddress,
+        address _addressProvider,
+        address incentivesControllerAddress,
+        address routerAddress,
+        string memory name,
+        string memory symbol
+    ) public FlashLoanReceiverBase(_addressProvider) ERC20(name, symbol) {
         _tokenAddress = tokenAddress;
         _addressesProvider = ILendingPoolAddressesProvider(_addressProvider);
 
@@ -54,10 +53,18 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         _aaveLendingPool = ILendingPool(_aaveLendingPoolAddress);
 
         // This is the maximum leverage we can achieve * 1000 (4x leverage = 4000)
-        multiplier = 10000000 / (10000 - (_aaveLendingPool.getConfiguration(tokenAddress).data & ~LTV_MASK));
+        multiplier =
+            10000000 /
+            (10000 -
+                (_aaveLendingPool.getConfiguration(tokenAddress).data &
+                    ~LTV_MASK));
 
-        _aTokenAddress = _aaveLendingPool.getReserveData(tokenAddress).aTokenAddress;
-        _debtTokenAddress = _aaveLendingPool.getReserveData(tokenAddress).variableDebtTokenAddress;
+        _aTokenAddress = _aaveLendingPool
+            .getReserveData(tokenAddress)
+            .aTokenAddress;
+        _debtTokenAddress = _aaveLendingPool
+            .getReserveData(tokenAddress)
+            .variableDebtTokenAddress;
 
         _incentivesControllerAddress = incentivesControllerAddress;
         _routerAddress = routerAddress;
@@ -72,8 +79,9 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         );
 
         // Track balance in contract
-        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
-        _mint(msg.sender, (amount * 10 ** 27) / liquidityIndex);
+        uint256 liquidityIndex = _aaveLendingPool
+            .getReserveData(_tokenAddress)
+        _mint(msg.sender, (amount * 10**27) / liquidityIndex);
 
         // FlashLoan params
         address receiverAddress = address(this);
@@ -104,12 +112,17 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
     }
 
     function withdraw(uint256 percentage) public {
-        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
+        uint256 liquidityIndex = _aaveLendingPool
+            .getReserveData(_tokenAddress)
+            .liquidityIndex;
 
-        require(percentage <= 10000 && percentage > 0, "WITHDRAW NEEDS TO BE > 0 AND <= 10000 (0% AND 100%)");
+        require(
+            percentage <= 10000 && percentage > 0,
+            "WITHDRAW NEEDS TO BE > 0 AND <= 10000 (0% AND 100%)"
+        );
         require(balanceOf(msg.sender) > 0, "NEEDS TO HAVE BALANCE > 0");
 
-        uint256 amount = balanceOf(msg.sender) * percentage / 10000;
+        uint256 amount = (balanceOf(msg.sender) * percentage) / 10000;
         uint256 priorSupply = totalSupply();
 
         // Track balance in contract
@@ -121,11 +134,13 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         assets[0] = address(_tokenAddress);
 
         uint256[] memory amounts = new uint256[](1);
-        uint256 debtBalance = IERC20(_debtTokenAddress).balanceOf(address(this));
-        amounts[0] = amount * debtBalance / priorSupply;
+        uint256 debtBalance = IERC20(_debtTokenAddress).balanceOf(
+            address(this)
+        );
+        amounts[0] = (amount * debtBalance) / priorSupply;
 
         uint256 assetBalance = IERC20(_aTokenAddress).balanceOf(address(this));
-        uint256 aTokenAmount = amount * assetBalance / priorSupply;
+        uint256 aTokenAmount = (amount * assetBalance) / priorSupply;
 
         uint256[] memory modes = new uint256[](1);
         modes[0] = flashLoanMode;
@@ -147,7 +162,10 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         );
 
         // Transfer tokens back to owner
-        IERC20(_tokenAddress).safeTransfer(msg.sender, IERC20(_tokenAddress).balanceOf(address(this)));
+        IERC20(_tokenAddress).safeTransfer(
+            msg.sender,
+            IERC20(_tokenAddress).balanceOf(address(this))
+        );
     }
 
     function executeOperation(
@@ -157,7 +175,10 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         address initiator,
         bytes calldata params
     ) external override returns (bool) {
-        (Operation operation, uint256 aTokenAmount) = abi.decode(params, (Operation, uint256));
+        (Operation operation, uint256 aTokenAmount) = abi.decode(
+            params,
+            (Operation, uint256)
+        );
 
         if (operation == Operation.DEPOSIT) {
             uint256 amount = IERC20(_tokenAddress).balanceOf(address(this));
@@ -165,21 +186,24 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amount);
 
             // Lend Asset
-            _aaveLendingPool.deposit(
-                _tokenAddress,
-                amount,
-                address(this),
-                0
-            );
+            _aaveLendingPool.deposit(_tokenAddress, amount, address(this), 0);
 
             uint256 amountOwing = amounts[0] + premiums[0];
 
             // Borrow Asset
-            _aaveLendingPool.borrow(_tokenAddress, amountOwing, 2, 0, address(this));
+            _aaveLendingPool.borrow(
+                _tokenAddress,
+                amountOwing,
+                2,
+                0,
+                address(this)
+            );
 
             // Approve the LendingPool contract allowance to *pull* the owed amount
-            IERC20(_tokenAddress).approve(address(_aaveLendingPool), amountOwing);
-
+            IERC20(_tokenAddress).approve(
+                address(_aaveLendingPool),
+                amountOwing
+            );
         } else if (operation == Operation.WITHDRAW) {
             uint256 amount = amounts[0];
 
@@ -196,7 +220,10 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
             );
 
             // Approve the LendingPool contract allowance to *pull* the owed amount
-            IERC20(_tokenAddress).approve(address(_aaveLendingPool), amountOwing);
+            IERC20(_tokenAddress).approve(
+                address(_aaveLendingPool),
+                amountOwing
+            );
         }
         return true;
     }
@@ -233,12 +260,12 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         path[1] = _tokenAddress;
 
         router.swapExactTokensForTokens(
-             amount,
-             1,
-             path,
-             address(this),
-             block.timestamp + 100000
-         );
+            amount,
+            1,
+            path,
+            address(this),
+            block.timestamp + 100000
+        );
 
         _aaveLendingPool.deposit(
             _tokenAddress,
@@ -249,6 +276,8 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
     }
 
     function scaledBalanceOf(address user) external view returns (uint256) {
-        return IERC20(_tokenAddress).balanceOf(address(this)) * balanceOf(user) / totalSupply();
+        return
+            (IERC20(_tokenAddress).balanceOf(address(this)) * balanceOf(user)) /
+            totalSupply();
     }
 }
