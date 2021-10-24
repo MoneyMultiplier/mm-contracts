@@ -74,6 +74,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
 
         // Track balance in contract
         uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
+        console.log('d', liquidityIndex);
         _mint(msg.sender, (amount * 10 ** 27) / liquidityIndex);
 
         // FlashLoan params
@@ -105,10 +106,12 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
     }
 
     function withdraw(uint256 amount) public {
-        console.log('withdraw');
+        // TODO make withdraw work with percentages
+        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
+
+        require((amount * 10 ** 27) / liquidityIndex <= balanceOf(msg.sender), "NOT ENOUGH FUNDS");
 
         // Track balance in contract
-        uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
         _burn(msg.sender, (amount * 10 ** 27) / liquidityIndex);
 
         address receiverAddress = address(this);
@@ -180,9 +183,17 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
             uint256 amount = amounts[0];
 
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amount);
+            console.log('debtBalance', IERC20(_debtTokenAddress).balanceOf(address(this)));
+            console.log('amount_', amount);
+
             _aaveLendingPool.repay(_tokenAddress, amount, 2, address(this));
 
             uint256 amountOwing = amounts[0] + premiums[0];
+
+            console.log('amountOwing', amountOwing);
+            console.log('aTokenAmount', aTokenAmount);
+            console.log('aTokenBalance', IERC20(_aTokenAddress).balanceOf(address(this)));
+            console.log('aTokenBalance', IERC20(_aTokenAddress).balanceOf(address(this)));
 
             _aaveLendingPool.withdraw(
                 _tokenAddress,
