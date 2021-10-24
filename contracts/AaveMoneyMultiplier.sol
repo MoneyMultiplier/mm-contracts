@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.9;
 
-import "hardhat/console.sol";
 import "./interfaces/ILendingPool.sol";
 import "./interfaces/ILendingPoolAddressesProvider.sol";
 import "./interfaces/FlashLoanReceiverBase.sol";
@@ -185,13 +184,11 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amount);
 
             // Lend Asset
-            console.log('deposit');
 
             _aaveLendingPool.deposit(_tokenAddress, amount, address(this), 0);
 
             uint256 amountOwing = amounts[0] + premiums[0];
 
-            console.log('borrow');
             // Borrow Asset
             _aaveLendingPool.borrow(
                 _tokenAddress,
@@ -200,8 +197,6 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
                 0,
                 address(this)
             );
-
-            console.log('ok');
 
             // Approve the LendingPool contract allowance to *pull* the owed amount
             IERC20(_tokenAddress).approve(
