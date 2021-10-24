@@ -274,11 +274,6 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         );
     }
 
-    function init(uint256 amount) public {
-        _aaveLendingPool.deposit(_tokenAddress, amount, address(this), 0);
-        _aaveLendingPool.setUserUseReserveAsCollateral(_tokenAddress, true);
-    }
-
     function scaledBalanceOf(address user) external view returns (uint256) {
         return
             (IERC20(_tokenAddress).balanceOf(address(this)) * balanceOf(user)) /
