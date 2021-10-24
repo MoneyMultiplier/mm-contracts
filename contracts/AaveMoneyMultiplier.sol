@@ -185,10 +185,13 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amount);
 
             // Lend Asset
+            console.log('deposit');
+
             _aaveLendingPool.deposit(_tokenAddress, amount, address(this), 0);
 
             uint256 amountOwing = amounts[0] + premiums[0];
 
+            console.log('borrow');
             // Borrow Asset
             _aaveLendingPool.borrow(
                 _tokenAddress,
@@ -197,6 +200,8 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
                 0,
                 address(this)
             );
+
+            console.log('ok');
 
             // Approve the LendingPool contract allowance to *pull* the owed amount
             IERC20(_tokenAddress).approve(
@@ -272,6 +277,11 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
             address(this),
             0
         );
+    }
+
+    function init(uint256 amount) public {
+        _aaveLendingPool.deposit(_tokenAddress, amount, address(this), 0);
+        _aaveLendingPool.setUserUseReserveAsCollateral(_tokenAddress, true);
     }
 
     function scaledBalanceOf(address user) external view returns (uint256) {
