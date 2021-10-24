@@ -1,9 +1,38 @@
-import deployLogic from "./utils/deployLogic";
-import {ethers} from "hardhat";
-import {BigNumber} from "ethers";
+// import {BigNumber} from "ethers";
+// import { readFileSync } from "fs";
 
 const hre = require("hardhat");
-const prompts = require("prompts");
+const { BigNumber } = hre.ethers;
+// const { ethers } = require("ethers");
+
+const deployLogic = async ({ networkName, contractName, assetName, assetSymbol, nonce, addresses }) => {
+  console.log(`Deploying ${contractName} for ${assetName}...`);
+  let contractInterface = await hre.ethers.getContractFactory(contractName);
+
+  const deployedContract = await contractInterface.deploy(
+    addresses['daiAddress'],
+    addresses['addressProvider'],
+    addresses['aaveControllerAddress'],
+    addresses['uniswapRouterAddress'],
+    assetName,
+    assetSymbol,
+    {'nonce': nonce}
+  );
+  // .deploy({'nonce': nonce});
+
+  await deployedContract.deployed();
+
+  console.log(`Deployed at: ${deployedContract.address}`);
+
+  // const contractFile = readFileSync(
+  //     filePath,
+  //     'utf8')
+  // const contract = JSON.parse(contractFile)
+
+  // console.log(`${contractName} on ${networkName} inserted into DB.`)
+
+  return Promise.resolve(true);
+}
 
 const weiToString = (wei) => {
     return wei
@@ -18,28 +47,34 @@ const deployData = {
     contracts: [
       {
         assetName: 'DAI',
-        contractName: "MoneyMultiplier",
-        filePath: "./artifacts/contracts/AaveMoneyMultiplier.sol/AaveMoneyMultiplier.json",
+        assetSymbol: 'DAI',
+        contractName: "AaveMoneyMultiplier",
       },
     ],
-    lendingPoolAddressesProvider: '0xd05e3E715d945B59290df0ae8eF85c1BdB684744',
+    addresses: {
+      lendingPoolAddressesProvider: '0xd05e3E715d945B59290df0ae8eF85c1BdB684744',
+      uniswapRouterAddress: "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff",
+      aaveControllerAddress: "0x357D51124f59836DeD84c8a1730D72B749d8BC23",
+      addressProvider: "0xd05e3E715d945B59290df0ae8eF85c1BdB684744",
+      daiAddress: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",  
+    }
   },
   avalanche: {
 
   }
 }
 
-const contractsToDeploy = 
-
 async function main() {
   const networkName = hre.hardhatArguments.network;
 
   if (networkName === undefined) {
-      console.log('Please set a network before deploying :D');
+      console.log('Please set a network before deploying');
       return;
   }
 
-  const [deployer] = await ethers.getSigners();
+  // console.log(hre);
+  // console.log(hre);
+  const [deployer] = await hre.ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
 
   const balanceBegin = await deployer.getBalance();
@@ -48,40 +83,28 @@ async function main() {
   let startingNonce = await deployer.getTransactionCount();
   console.log('Starting nonce:', startingNonce);
 
-  const response = await prompts({
-          type: 'confirm',
-          name: 'confirm',
-          message: `Are you sure you want to deploy to ${networkName}?`,
-          initial: false
-      }
-  )
-
-  if (!response.confirm) {
-      console.log("Aborting");
-      return;
-  }
-
   var allOk = true;
 
-  for (var i = 0; i < deployData[networkName][contracts].length; i++) {
-    console.log('assetName',deployData[networkName][contracts].assetName);
-      // let nonce = await deployer.getTransactionCount();
-      // const isOk = await deployLogic({
-      //     networkName: networkName,
-      //     contractName: contractsToDeploy[i].contractName,
-      //     filePath: contractsToDeploy[i].filePath,
-      //     nonce: nonce
-      // })
-      // if (!isOk) {
-      //     allOk = false;
-      // }
+  for (var i = 0; i < deployData[networkName]['contracts'].length; i++) {
+      let nonce = await deployer.getTransactionCount();
+      const isOk = await deployLogic({
+          networkName: networkName,
+          contractName: deployData[networkName]['contracts'][i].contractName,
+          assetName: deployData[networkName]['contracts'][i].assetName,
+          assetSymbol: deployData[networkName]['contracts'][i].assetSymbol,
+          addresses: deployData[networkName]['addresses'],
+          nonce: nonce
+      })
+      if (!isOk) {
+          allOk = false;
+      }
   }
   const balanceEnd = await deployer.getBalance();
   console.log("Account balance:", weiToString(balanceEnd));
   console.log("Cost to deploy:", weiToString(balanceBegin.sub(balanceEnd)));
 
   if (!allOk) {
-      console.log('There was a problem during deployment. Will not set network blockNumber.')
+      console.log('There was a problem during deployment.')
   } else {
       console.log('Deploy successful!')
   }

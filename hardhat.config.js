@@ -13,6 +13,8 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
+const gwei = 1000000000;
+
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
@@ -29,8 +31,15 @@ module.exports = {
   networks: {
     hardhat: {
       forking: {
-        url: `https://polygon-mainnet.infura.io/v3/b97cb47e240644d98b8d384859326044`,
+        url: `https://polygon-mainnet.infura.io/v3/213b88e46783471ba5496473a7a3c42d`,
       }
     },
+    polygon: {
+      url: `https://polygon-mainnet.infura.io/v3/213b88e46783471ba5496473a7a3c42d`,
+      accounts: {
+        mnemonic: process.env.POLYGON_TEST_MNEMONIC
+      },
+      gasPrice: 30*gwei
+    }
   },
 };
