@@ -64,7 +64,6 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
     }
 
     function deposit(uint256 amount) public {
-        console.log('deposit');
         // Transfer Asset into contract
         IERC20(_tokenAddress).safeTransferFrom(
             msg.sender,
@@ -74,7 +73,6 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
 
         // Track balance in contract
         uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
-        console.log('d', liquidityIndex);
         _mint(msg.sender, (amount * 10 ** 27) / liquidityIndex);
 
         // FlashLoan params
@@ -106,13 +104,13 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
     }
 
     function withdraw(uint256 percentage) public {
-        // TODO make withdraw work with percentages
         uint256 liquidityIndex = _aaveLendingPool.getReserveData(_tokenAddress).liquidityIndex;
 
         require(percentage <= 10000 && percentage > 0, "WITHDRAW NEEDS TO BE > 0 AND <= 10000 (0% AND 100%)");
         require(balanceOf(msg.sender) > 0, "NEEDS TO HAVE BALANCE > 0");
 
         uint256 amount = balanceOf(msg.sender) * percentage / 10000;
+        uint256 priorSupply = totalSupply();
 
         // Track balance in contract
         _burn(msg.sender, amount);
@@ -124,10 +122,10 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
 
         uint256[] memory amounts = new uint256[](1);
         uint256 debtBalance = IERC20(_debtTokenAddress).balanceOf(address(this));
-        amounts[0] = amount * debtBalance / totalSupply();
+        amounts[0] = amount * debtBalance / priorSupply;
 
         uint256 assetBalance = IERC20(_aTokenAddress).balanceOf(address(this));
-        uint256 aTokenAmount = amount * assetBalance / totalSupply();
+        uint256 aTokenAmount = amount * assetBalance / priorSupply;
 
         uint256[] memory modes = new uint256[](1);
         modes[0] = flashLoanMode;
@@ -149,7 +147,7 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
         );
 
         // Transfer tokens back to owner
-        IERC20(_tokenAddress).safeTransfer(msg.sender, aTokenAmount);
+        IERC20(_tokenAddress).safeTransfer(msg.sender, IERC20(_tokenAddress).balanceOf(address(this)));
     }
 
     function executeOperation(
@@ -186,17 +184,10 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
             uint256 amount = amounts[0];
 
             IERC20(_tokenAddress).approve(address(_aaveLendingPool), amount);
-            console.log('debtBalance', IERC20(_debtTokenAddress).balanceOf(address(this)));
-            console.log('amount_', amount);
 
             _aaveLendingPool.repay(_tokenAddress, amount, 2, address(this));
 
             uint256 amountOwing = amounts[0] + premiums[0];
-
-            console.log('amountOwing', amountOwing);
-            console.log('aTokenAmount', aTokenAmount);
-            console.log('aTokenBalance', IERC20(_aTokenAddress).balanceOf(address(this)));
-            console.log('aTokenBalance', IERC20(_aTokenAddress).balanceOf(address(this)));
 
             _aaveLendingPool.withdraw(
                 _tokenAddress,
@@ -258,7 +249,6 @@ contract AaveMoneyMultiplier is FlashLoanReceiverBase, ERC20 {
     }
 
     function scaledBalanceOf(address user) external view returns (uint256) {
-        // TODO
-        return 0;
+        return IERC20(_tokenAddress).balanceOf(address(this)) * balanceOf(user) / totalSupply();
     }
 }
