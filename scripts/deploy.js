@@ -5,8 +5,8 @@ const hre = require("hardhat");
 const { BigNumber } = hre.ethers;
 // const { ethers } = require("ethers");
 
-const deployLogic = async ({ networkName, contractName, nonce, addresses }) => {
-  console.log(`Deploying ${contractName}...`);
+const deployLogic = async ({ networkName, contractName, assetName, assetSymbol, nonce, addresses }) => {
+  console.log(`Deploying ${contractName} for ${assetName}...`);
   let contractInterface = await hre.ethers.getContractFactory(contractName);
 
   const deployedContract = await contractInterface.deploy(
@@ -14,15 +14,15 @@ const deployLogic = async ({ networkName, contractName, nonce, addresses }) => {
     addresses['addressProvider'],
     addresses['aaveControllerAddress'],
     addresses['uniswapRouterAddress'],
-    "Test",
-    "TEST",
+    assetName,
+    assetSymbol,
     {'nonce': nonce}
   );
   // .deploy({'nonce': nonce});
 
   await deployedContract.deployed();
 
-  console.log(`${contractName} contract deployed on ${networkName} at: ${deployedContract.address}`);
+  console.log(`Deployed at: ${deployedContract.address}`);
 
   // const contractFile = readFileSync(
   //     filePath,
@@ -47,6 +47,7 @@ const deployData = {
     contracts: [
       {
         assetName: 'DAI',
+        assetSymbol: 'DAI',
         contractName: "AaveMoneyMultiplier",
       },
     ],
@@ -89,6 +90,8 @@ async function main() {
       const isOk = await deployLogic({
           networkName: networkName,
           contractName: deployData[networkName]['contracts'][i].contractName,
+          assetName: deployData[networkName]['contracts'][i].assetName,
+          assetSymbol: deployData[networkName]['contracts'][i].assetSymbol,
           addresses: deployData[networkName]['addresses'],
           nonce: nonce
       })
